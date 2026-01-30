@@ -136,6 +136,11 @@ If your host does not support it → Docker Desktop will never run.
 
 
 
+- v portainer_data:/data \
+  portainer/portainer-ce
+
+
+
 
 
 
