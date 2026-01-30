@@ -18,47 +18,73 @@ systemctl --user start docker-desktop
 
 sudo usermod -aG docker $USER
 newgrp docker
-
-Step 1: Remove broken/partial packages
-sudo apt remove docker-desktop -y
-sudo apt autoremove -y
+-----------------------------------------------
+Step 1: Clean any broken Docker repo setup
+sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo rm -f /etc/apt/keyrings/docker.gpg
+sudo apt clean
 sudo apt update
 
-🔹 Step 2: Add Docker’s official APT repository
-sudo apt install -y ca-certificates curl gnupg
-
+🔹 Step 2: Re-add Docker GPG key (correct way)
 sudo install -m 0755 -d /etc/apt/keyrings
 
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg |
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
 sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
 
-Add repo (Ubuntu noble = 24.04):
+Verify key exists:
 
-echo \
-"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-https://download.docker.com/linux/ubuntu noble stable" |
+ls -l /etc/apt/keyrings/docker.gpg
+
+🔹 Step 3: Add Docker repo with correct codename
+
+Ubuntu 24.04 = noble
+
+⚠️ This line is critical — copy-paste only:
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+https://download.docker.com/linux/ubuntu noble stable" | \
 sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
+🔹 Step 4: Update and VERIFY repo visibility
 sudo apt update
 
-🔹 Step 3: Install Docker CE (this fixes the dependency)
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+Now verify Docker packages are visible:
+
+apt-cache policy docker-ce
 
 
-Verify:
+✅ You should see something like:
 
-docker --version
+Candidate: 5:26.x.x-1~ubuntu.24.04~noble
+
+
+If you don’t see a candidate, STOP and tell me — don’t continue.
+
+🔹 Step 5: Install Docker CE (this will now work)
+sudo apt install -y \
+docker-ce \
+docker-ce-cli \
+containerd.io \
+docker-buildx-plugin \
+docker-compose-plugin
+
+🔹 Step 6: Verify Docker Engine
+docker version
 docker compose version
 
-🔹 Step 4: NOW install Docker Desktop
+
+Test:
+
+docker run hello-world
+
+🔹 Step 7: Now install Docker Desktop
 sudo apt install ./docker-desktop-4.27.2-amd64.deb
 
 
-✅ This time it will install cleanly
+Then:
 
-🔹 Step 5: Start Docker Desktop
 systemctl --user start docker-desktop
-
