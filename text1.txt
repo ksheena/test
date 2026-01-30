@@ -1,1 +1,20 @@
-Hello Welcome TO MY world 123!
+sudo apt update
+sudo apt install -y \
+  ca-certificates \
+  curl \
+  gnupg \
+  lsb-release \
+  qemu-system \
+  pass
+
+wget https://desktop.docker.com/linux/main/amd64/docker-desktop-4.27.2-amd64.deb
+
+sudo apt install ./docker-desktop-4.27.2-amd64.deb
+
+sudo apt --fix-broken install
+
+systemctl --user start docker-desktop
+
+
+sudo usermod -aG docker $USER
+newgrp docker
