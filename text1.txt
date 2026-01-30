@@ -140,6 +140,8 @@ If your host does not support it → Docker Desktop will never run.
   portainer/portainer-ce
 
 
+export no_proxy="localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
+export NO_PROXY="$no_proxy"
 
 
 
