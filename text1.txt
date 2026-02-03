@@ -294,4 +294,7 @@ docker logs sandbox1-vectr-webui-1 --tail 200
 curl -vk https://<UBUNTU_IP>:8081/
 
 
+curl -vk --resolve calera-vectr.com:8081:10.1.235.116 https://calera-vectr.com:8081/
+
+
 
