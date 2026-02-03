@@ -280,3 +280,18 @@ POSTGRES_DB=vectr
 
 
 sudo docker compose up -d
+
+vectr Error_fix:
+
+sudo ss -lntp | grep -E ':8081|:8443'
+docker ps --format "table {{.Names}}\t{{.Ports}}"
+
+curl -vk https://localhost:8081/
+
+docker logs sandbox1-vectr-caddy-gateway-1 --tail 200
+docker logs sandbox1-vectr-webui-1 --tail 200
+
+curl -vk https://<UBUNTU_IP>:8081/
+
+
+
