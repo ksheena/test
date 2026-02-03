@@ -1,0 +1,24 @@
+#version: '3.3'
+
+services:
+  caldera:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TZ: "UTC"
+        VARIANT: "full"
+    image: caldera:latest
+    ports:
+      - "8888:8888"
+      - "8443:8443"
+      - "7010:7010"
+      - "7011:7011/udp"
+      - "7012:7012"
+      - "8853:8853"
+      - "8022:8022"
+      - "2222:2222"
+    volumes:
+      - ./conf/local.yml:/usr/src/app/conf/local.yml
+      - ./data:/usr/src/app/data
+    command: --log DEBUG
