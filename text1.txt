@@ -206,3 +206,77 @@ curl -SL https://github.com/docker/compose/releases/download/v2.27.0/docker-comp
 chmod +x ~/.docker/cli-plugins/docker-compose
 
 localhost,127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install caddy
+
+
+mkdir -p /opt/vectr/cert
+cd /opt/vectr/cert
+
+openssl genrsa -out ca.key 2048
+openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 -out ca.pem
+openssl genrsa -out server.key 2048
+openssl req -new -key server.key -out server.csr
+openssl x509 -req -in server.csr -CA myCA.pem -CAkey myCA.key -CAcreateserial -out server.crt -days 365 -sha256
+openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out server.crt -days 365 -sha256
+openssl x509 -in server.crt -text -noout
+
+root@analyst-virtual-machine:/opt/vectr/cert# cat /etc/hosts
+10.99.156.108   calera-vectr.com
+
+
+mkdir -p /opt/vectr
+cd /opt/vectr
+wget https://github.com/SecurityRiskAdvisors/VECTR/releases/download/ce-9.12.1/sra-vectr-runtime-9.12.1-ce.zip
+unzip sra-vectr-runtime-9.12.1-ce.zip
+
+
+#replace .env file content with below
+------------------------------------
+# .env file
+
+VECTR_HOSTNAME=calera-vectr.com
+VECTR_PORT=8081
+
+#Set caddy cert profile (usercert, internal)
+VECTR_CERTPROFILE=internal
+
+VECTR_CADDY_CERT_PATH=/opt/vectr/cert/server.crt 
+VECTR_CADDY_KEY_PATH=/opt/vectr/cert/server.key 
+VECTR_CADDY_CA_PATH=/opt/vectr/cert/ca.crt
+
+# defaults to warn, debug useful for development
+# supported log levels are: DEBUG, INFO, WARN, ERROR, FATAL
+VECTR_CONTAINER_LOG_LEVEL=WARN
+
+# PLEASE change this and store it in a safe place.  Encrypted data like passwords
+# to integrate with external systems (like TAXII) use this key
+VECTR_DATA_KEY=CHANGEMENOW
+
+# JWT signing (JWS) and encryption (JWE) keys
+# Do not use the same value for both signing and encryption!
+# It is recommended to use at least 16 characters. You may use any printable unicode character
+# PLEASE change these example values!
+JWS_KEY=WSӠ$8É*X&*8HѲk!^£
+JWE_KEY=VПlδ4x%vЋs$fIT@b€
+
+# This sets the name of your project.  Will show up in the name of your containers.
+COMPOSE_PROJECT_NAME=sandbox1
+
+# This is where the mongodb mounts.
+VECTR_DATA_DIR=/var/data/
+
+POSTGRES_PASSWORD=vectrtest
+POSTGRES_USER=vectr
+POSTGRES_DB=vectr
+----------------------------------
+
+
+
+sudo docker compose up -d
