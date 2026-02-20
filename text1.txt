@@ -314,3 +314,25 @@ Invoke-WebRequest https://raw.githubusercontent.com/mandiant/flare-vm/main/insta
 .\install.ps1
 
 
+C:\Windows\System32>ipconfig
+
+Windows IP Configuration
+
+
+Ethernet adapter Ethernet:
+
+   Connection-specific DNS Suffix  . :
+   IPv6 Address. . . . . . . . . . . : 2001:b00b::f6d9:e310:ccf9:14bf
+   IPv6 Address. . . . . . . . . . . : fd00:b00b::8e0a:facf:7a91:4bd3
+   Temporary IPv6 Address. . . . . . : 2001:b00b::7d04:46ce:b8a0:2d35
+   Temporary IPv6 Address. . . . . . : fd00:b00b::7d04:46ce:b8a0:2d35
+   Link-local IPv6 Address . . . . . : fe80::8f8f:93cd:546b:e9ac%9
+   IPv4 Address. . . . . . . . . . . : 10.1.176.216
+   Subnet Mask . . . . . . . . . . . : 255.0.0.0
+   Default Gateway . . . . . . . . . : fe80::7a2b:cbff:fe1c:2662%9
+                                       10.0.0.1
+
+C:\Windows\System32>
+
+
+
